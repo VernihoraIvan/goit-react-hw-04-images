@@ -1,101 +1,126 @@
-import { Component } from 'react';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Searchbar } from 'components/Searchbar/Searchbar';
 import { fetchImages } from '../utils/image-service';
 import { Button } from 'components/Button/Button';
 import { Loader } from './Loader/Loader';
 import { Modal } from './Modal/Modal';
+import { useState, useEffect } from 'react';
 
-export class App extends Component {
-  state = {
-    page: 1,
-    query: '',
-    imageProfiles: [],
-    isLoading: false,
-    totalHits: '',
-    isButtonActive: false,
-    showModal: false,
-    largeImage: '',
-  };
+export const App = () => {
+  // state = {
+  //   page: 1,
+  //   query: '',
+  //   imageProfiles: [],
+  //   isLoading: false,
+  //   totalHits: '',
+  //   isButtonActive: false,
+  //   showModal: false,
+  //   largeImage: '',
+  // };
 
-  handleSubmit = query => {
-    if (query === this.state.query) {
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState('');
+  const [imageProfiles, setImageProfiles] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalHits, setTotalHits] = useState('');
+  const [isButtonActive, setIsButtonActive] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImage, setLargeImage] = useState('');
+
+  const handleSubmit = inputQuery => {
+    if (query === inputQuery) {
       return;
     }
-    this.setState({ query, page: 1, imageProfiles: [] });
+    setQuery(inputQuery);
+    setPage(1);
+    setImageProfiles([]);
+    // this.setState({ query, page: 1, imageProfiles: [] });
   };
 
-  getPhotos = async (query, page) => {
-    if (!query) {
+  const getPhotos = async (inputQuery, inputPagepage) => {
+    if (!inputQuery) {
       return;
     }
     try {
-      this.setState({ isLoading: true });
-      const data = await fetchImages(query, page);
+      setIsLoading(true);
+      // this.setState({ isLoading: true });
+      const data = await fetchImages(inputQuery, inputPagepage);
       if (data.hits.length === 0) {
         return;
       }
-      this.setState(prevState => ({
-        imageProfiles: [...prevState.imageProfiles, ...data.hits],
-        totalHits: data.totalHits,
-      }));
+      ////////////////////////////////////////////////////////////////////////??????????????????????????????????????
+      setImageProfiles(prevState => [...prevState, ...data.hits]);
+      setTotalHits(data.totalHits);
+      // this.setState(prevState => ({
+      //   imageProfiles: [...prevState.imageProfiles, ...data.hits],
+      //   totalHits: data.totalHits,
+      // }));
+      ///////////////////////////////////////////////////////////////////////////????????????????????????????????
     } catch {
       window.alert('Somthing went wrong');
     } finally {
-      this.setState({ isLoading: false });
+      setIsLoading(false);
     }
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const handleLoadMore = () => {
+    setPage(prevState => prevState + 1);
+    // this.setState(prevState => ({ page: prevState.page + 1 }));
   };
 
-  componentDidUpdate(prevProps, prevState) {
-    const { page, query } = this.state;
-    if (query !== prevState.query || prevState.page !== page) {
-      this.setState({
-        isLoader: true,
-        isButtonActive: page !== 1,
-      });
-      this.getPhotos(query, page);
+  useEffect(() => {
+    setIsLoading(true);
+    setIsButtonActive(true);
+    if (page !== 1) {
+      setIsButtonActive(false);
     }
 
-    if (
-      !prevState.isButtonActive &&
-      this.state.totalHits > this.state.imageProfiles.length
-    ) {
-      this.setState({ isButtonActive: true });
+    getPhotos(query, page);
+    if (!isButtonActive && totalHits > imageProfiles.length) {
+      setIsButtonActive(true);
     }
-    if (
-      prevState.isButtonActive &&
-      this.state.totalHits < this.state.imageProfiles.length
-    ) {
-      this.setState({ isButtonActive: false });
-    }
-  }
+  }, [page, query]);
+  // componentDidUpdate(prevProps, prevState) {
+  //   const { page, query } = this.state;
+  //   if (query !== prevState.query || prevState.page !== page) {
+  //     this.setState({
+  //       isLoader: true,
+  //       isButtonActive: page !== 1,
+  //     });
+  //     this.getPhotos(query, page);
+  //   }
 
-  modalOpen = largeImage => {
-    this.setState({ largeImage, showModal: true });
+  //   if (
+  //     !prevState.isButtonActive &&
+  //     this.state.totalHits > this.state.imageProfiles.length
+  //   ) {
+  //     this.setState({ isButtonActive: true });
+  //   }
+  //   if (
+  //     prevState.isButtonActive &&
+  //     this.state.totalHits < this.state.imageProfiles.length
+  //   ) {
+  //     this.setState({ isButtonActive: false });
+  //   }
+  // }
+
+  const modalOpen = inputLargeImage => {
+    setLargeImage(inputLargeImage);
+    setShowModal(true);
+    // this.setState({ largeImage, showModal: true });
   };
-  onClose = () => {
-    this.setState({ showModal: false });
+  const onClose = () => {
+    setShowModal(false);
+    // this.setState({ showModal: false });
   };
 
-  render() {
-    const { imageProfiles, isButtonActive, isLoading, largeImage, showModal } =
-      this.state;
-
-    return (
-      <div>
-        <Searchbar onSubmit={this.handleSubmit} />
-        <ImageGallery
-          imageProfiles={imageProfiles}
-          modalOpen={this.modalOpen}
-        />
-        {isLoading && <Loader />}
-        {isButtonActive && <Button onClick={this.handleLoadMore} />}
-        {showModal && <Modal largeImage={largeImage} onClose={this.onClose} />}
-      </div>
-    );
-  }
-}
+  return (
+    <div>
+      <Searchbar onSubmit={handleSubmit} />
+      <ImageGallery imageProfiles={imageProfiles} modalOpen={modalOpen} />
+      {isLoading && <Loader />}
+      {isButtonActive && <Button onClick={handleLoadMore} />}
+      {showModal && <Modal largeImage={largeImage} onClose={onClose} />}
+    </div>
+  );
+};
